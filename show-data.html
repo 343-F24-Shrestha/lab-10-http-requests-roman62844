@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Show me the Data</title>
+    <style>
+        /* body {
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            margin: 20px;
+        }
+
+        button {
+            margin: 10px 0;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
+        .output {
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: #f9f9f9;
+        } */
+
+        .output {
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            padding: 20px;
+            background-color: #f9f9f9;
+            white-space: pre-line;
+            font-family: monospace;
+            line-height: 1.4;
+            max-height: 500px;
+            overflow-y: auto;
+            font-size: 14px;
+            border-radius: 5px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        button {
+            margin: 10px 0;
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+
+        h3 {
+            color: #666;
+            margin-top: 30px;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f0f0f0;
+        }
+
+        .section {
+            background-color: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Show me the Data</h1>
+        <div class="section">
+            <h3>Dog fact</h3>
+            <button onclick="fetchData(1)">Display Data</button>
+            <div id="output1" class="output">No data fetched yet.</div>
+        </div>
+        <div class="section">
+            <h3>NFL games this week</h3>
+            <button onclick="fetchData(2)">Display Data</button>
+            <div id="output2" class="output">No data fetched yet.</div>
+        </div>
+        <div class="section">
+            <h3>The weather</h3>
+            <button onclick="fetchData(3)">Display Data</button>
+            <div id="output3" class="output">No data fetched yet.</div>
+        </div>
+    </div>
+
+    <script>
+        async function fetchData(site) {
+            let response = null;
+            let data = null;
+            try {
+                console.log(`Fetching site ${site}`);
+                let url;
+                let weather;
+                switch (site) {
+                    case 1:
+                        url = "https://dogapi.dog/api/facts?number=1";
+                        break;
+                    case 2:
+                        url = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
+                        break;
+                    case 3:
+                        weather = await someWeatherStuff();
+                        break;
+                    default:
+                        // should never get here
+                        throw new Error('weird site number');
+                        break;
+                }
+                if (site != 3) {
+                    response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status} for ${url}`);
+                    }
+                    data = await response.json();
+                    if (!data) {
+                        throw new Error(`No data received from ${url}`);
+                    }
+                    if (data.error) {
+                        throw new Error(`ESPN API error: ${data.error.message || JSON.stringify(data.error)}`);
+                    }
+                }
+
+
+                let outputDiv;
+                switch (site) {
+                    case 1:
+                        outputDiv = document.getElementById('output1');
+                        outputDiv.textContent = `Random Dog Fact: ${data.facts[0]}`;
+                        break;
+                    case 2:
+                        outputDiv = document.getElementById('output2');
+                        outputDiv.textContent = formatNFLGames(data);
+                        break;
+                    case 3:
+                        outputDiv = document.getElementById('output3');
+                        outputDiv.textContent = `Weather for ${weather.location}:\n${weather.currentWeather}`;
+                        console.log(weather);
+                        break;
+                    default:
+                        throw new Error('weird site number');
+                        break;
+                }
+            } catch (error) {
+                console.error(`Error:`, error);
+            }
+            console.log(data);
+            return data;
+        }
+
+        function formatNFLGames(nflData) {
+            let summary = "NFL Week " + nflData.week.number + " Games:\n\n";
+
+            nflData.events.forEach((game, index) => {
+                const homeTeam = game.competitions[0].competitors[0];
+                const awayTeam = game.competitions[0].competitors[1];
+                const venue = game.competitions[0].venue;
+                const status = game.status.type;
+                const broadcast = game.broadcast;
+
+                summary += `Game ${index + 1}: ${game.name}\n`;
+                summary += `Status: ${status.detail}\n`;
+                summary += `Score: ${awayTeam.team.abbreviation} ${awayTeam.score} - ${homeTeam.team.abbreviation} ${homeTeam.score}\n`;
+                summary += `Records: ${awayTeam.team.abbreviation} (${awayTeam.records[0].summary}) @ ${homeTeam.team.abbreviation} (${homeTeam.records[0].summary})\n`;
+                summary += `Location: ${venue.fullName} - ${venue.address.city}, ${venue.address.state}\n`;
+
+                if (broadcast) {
+                    summary += `Watch on: ${broadcast}\n`;
+                }
+
+                // Add a blank line between games
+                summary += '\n';
+            });
+
+            return summary;
+        }
+
+        async function someWeatherStuff() {
+            try {
+                // Get location from IP
+                const ipResponse = await fetch('https://ipapi.co/json/');
+                const locationData = await ipResponse.json();
+
+                const lat = locationData.latitude;
+                const lon = locationData.longitude;
+
+                // Get weather points 
+                const weatherPointsUrl = `https://api.weather.gov/points/${lat},${lon}`;
+                const pointsResponse = await fetch(weatherPointsUrl);
+                const pointsData = await pointsResponse.json();
+
+                // Get forecast using URL from points response
+                const forecastResponse = await fetch(pointsData.properties.forecast);
+                const forecastData = await forecastResponse.json();
+
+                return {
+                    location: `${locationData.city}, ${locationData.region}`,
+                    currentWeather: forecastData.properties.periods[0].detailedForecast
+                };
+
+            } catch (error) {
+                throw new Error('Error fetching weather data: ' + error.message);
+            }
+        }
+    </script>
+</body>
+
+</html>
